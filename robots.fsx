@@ -36,3 +36,7 @@ type Action =
 // HEJ IGEN
 
 // test fra aske
+
+
+
+// HEJ IGEN IGEN (version 2)
