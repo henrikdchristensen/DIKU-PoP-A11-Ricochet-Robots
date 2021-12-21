@@ -26,7 +26,7 @@ test1.SetRightWall(2,2)
 test1.Show()
 
 
-
+//HEJ
 type Direction = North | South | East | West
 type Position = int * int
 
