@@ -26,6 +26,7 @@ test1.SetRightWall(2,2)
 test1.Show()
 
 // tesrt
+// ny ændring
 
 type Direction = North | South | East | West
 type Position = int * int
@@ -38,3 +39,6 @@ type Action =
 // HEJ IGEN
 
 // test fra aske
+
+
+// ny funktion
