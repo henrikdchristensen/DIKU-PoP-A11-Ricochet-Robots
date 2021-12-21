@@ -35,3 +35,6 @@ type Action =
     | Continue of Direction * Position
     | Ignore
 
+
+
+//HEJ ASKE
