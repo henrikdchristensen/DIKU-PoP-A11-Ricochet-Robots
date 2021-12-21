@@ -25,7 +25,8 @@ test1.Set(2,1,"1")
 test1.SetRightWall(2,2)
 test1.Show()
 
-// ny ændring til main fra aske
+// ny ændring til main fra aske 
+// ændring
 
 type Direction = North | South | East | West
 type Position = int * int
