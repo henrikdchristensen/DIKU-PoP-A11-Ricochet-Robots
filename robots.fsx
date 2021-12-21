@@ -25,8 +25,13 @@ test1.Set(2,1,"1")
 test1.SetRightWall(2,2)
 test1.Show()
 
+<<<<<<< HEAD
 
 //HEJ
+=======
+// ny ændring til main fra aske
+
+>>>>>>> 1ca09b496e5f8d95c4d8e56991b5eac29f98b2bf
 type Direction = North | South | East | West
 type Position = int * int
 
@@ -36,5 +41,8 @@ type Action =
     | Ignore
 
 
+<<<<<<< HEAD
 
 //HEJ ASKE
+=======
+>>>>>>> 1ca09b496e5f8d95c4d8e56991b5eac29f98b2bf
