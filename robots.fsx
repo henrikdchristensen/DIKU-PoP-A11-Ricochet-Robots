@@ -34,3 +34,11 @@ type Action =
     | Continue of Direction * Position
     | Ignore
 
+
+[< AbstractClass >]
+type BoardElement () =
+    abstract member RenderOn : BoardDisplay -> unit
+    abstract member Interact : Robot -> Direction -> Action
+    default __ . Interact _ _ = Ignore
+    abstract member GameOver : Robot list -> bool
+    default __ . GameOver _ = false
