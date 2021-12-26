@@ -1,30 +1,76 @@
 type BoardDisplay(rows:int, cols:int) =
-    let mutable board = Array2D.create (rows*2) (cols*2) "*"
+    let board = Array2D.create (rows*2+1) (cols*2+1) ("  ")
     
-    member this.Set((row:int),(col:int),(cont:string)): unit = board.[(row-1)*2,(col-1)*2] <- cont
+    member this.Set((row:int),(col:int),(cont:string)): unit =
+        let r = if row < 1 then 0 elif row > rows then (rows*2) else row*2-1
+        let c = if col < 1 then 0 elif col > cols then (cols*2) else col*2-1
+        //printfn "fand sidste box %A" (col*2)
+        board.[r,c] <- (if cont.Length = 1 && not (cont = "|") then cont+ " " else cont)
     
-    member this.SetRightWall((row:int),(col:int)) = board.[(row-1)*2,col*2-1] <- "|"
-    member this.SetBottomWall((row:int),(col:int)) = board.[row*2-1,(col-1)*2] <- "-"
+    member this.SetRightWall((row:int),(col:int)) = board.[row*2-1,col*2] <- "|"
+    member this.SetBottomWall((row:int),(col:int)) = board.[row*2,col*2-1] <- "--"
 
     member this.Show() = 
+        printfn "%A" board
+        printfn "\n"
         let mutable str = ""
-        for row=0 to rows*2-1 do
-            for col=0 to cols*2-1 do
-                str <- str + board.[row,col]
+        for row=0 to rows*2 do
+            for col=0 to cols*2 do
+                if row % 2 = 0 && col % 2 = 0 then str <- str + board.[row,col].Replace("  ", "+") // equal rows and columns
+                elif row % 2 = 1 && col % 2 = 0  then str <- str + board.[row,col].Replace("  ", " ")  // unequal rows equal columns
+                else str <- str + board.[row,col]
             str <- str + "\n"
         printfn "%s" str
 
+    // member this.Show() = 
+    //         let mutable str = ""
+    //         for row=0 to rows*2 do
+    //             for col=0 to cols*2 do
+    //                 str <- str + board.[row,col]
+    //             str <- str + "\n"
+    //         printfn "%s" str
+
    
 let display1 = new BoardDisplay(3,3)
-//display1.Set(1,1,"1")
-display1.SetRightWall(1,1)
-// display1.SetBottomWall(1,1)
-display1.Show()
-// // display1.Set(1,2,"1")
-// // display1.Show()
-// display1.Set(2,1,"1")
-// display1.SetRightWall(2,2)
+display1.Set(1,1,"bB")
+display1.Set(1,2,"tt")
+
+display1.Set(2,1,"GG")
+
+
+
+display1.Set(1,1,"UU")
+
+//display1.Set(1,3,"HH")
+// display1.SetRightWall(1,1)
+// display1.SetRightWall(2,1)
+// display1.SetRightWall(2,3)
+
+// display1.SetRightWall(1,3)
+
+// display1.SetBottomWall(1,3)
+
+// display1.Set(0,1,"--")
+// display1.Set(3,1,"--")
+// display1.Set(1, 0, "|")
+
+
 // display1.Show()
+// let r = 3
+// for i = 1 to r do
+// //     //if i % 2 = 1 then 
+//         // printfn " hit unequal: %A" i
+//         // display1.Set(r, i, "--") // lower
+//         // display1.Set(i, 0, "|") // left
+//         // display1.Set(0, i, "|") // right
+//     display1.Set(0, i, "--") // upper
+//     display1.SetBottomWall(r,i) // lower 
+//     display1.SetRightWall(i, r) // right
+//     display1.Set(i, 0, "|")    
+
+    //display1.Set(r+1, i, "--") // lower
+
+
 
 type Direction = North | South | East | West
 type Position = int * int
@@ -43,6 +89,16 @@ type BoardElement () =
     default __ . Interact _ _ = Ignore
     abstract member GameOver : Robot list -> bool
     default __ . GameOver _ = false
+    
+    member this.interActHelper r c  (robot: Robot) dir =
+        let (otherRow, otherCol) = robot.Position
+        let samePosition = otherRow = r && otherCol = c
+        match dir with
+            | North -> if samePosition then Stop((r+1), c) else Ignore
+            | South -> if samePosition then Stop((r-1), c) else Ignore 
+            | East -> if  samePosition then Stop(r, (c-1)) else Ignore
+            | West -> if samePosition then Stop(r, (c+1)) else Ignore
+
 
     
 and Robot(row:int, col:int, name:string) =
@@ -65,12 +121,10 @@ and Robot(row:int, col:int, name:string) =
     override this.Interact(other:Robot) (dir: Direction) = 
         let (otherRow, otherCol) = other.Position
         let (thisRow, thisCol) = this.Position
-        match dir with
-            | North -> if otherRow < thisRow then Stop(thisRow+1, thisCol) else Ignore
-            | South -> if otherRow > thisRow then Stop(thisRow-1, thisCol) else Ignore
-            | East -> if otherCol < thisCol then Stop(thisRow, thisCol-1) else Ignore
-            | West -> if otherCol > thisCol then Stop(thisRow, thisCol+1) else Ignore
 
+        if other.Name = this.Name then Ignore 
+        else
+            this.interActHelper thisRow thisCol other dir
     override this.RenderOn (display: BoardDisplay) = display.Set(row, col, this.Name)
 
 // let robot1 = new Robot(3,3,"robot1")
@@ -84,14 +138,15 @@ and Robot(row:int, col:int, name:string) =
 // robot1.Step(West)
 // printfn "%A" robot1.Position
 
-let interActHelper r c  (robot: Robot) dir =
-        let (otherRow, otherCol) = robot.Position
-        // let (thisRow, thisCol) = this.Position
-        match dir with
-            | North -> if otherRow = r then Stop((r+1), c) else Ignore
-            | South -> if otherRow = r then Stop((r-1), c) else Ignore
-            | East -> if otherCol = c then Stop(r, (c-1)) else Ignore
-            | West -> if otherCol = c then Stop(r, (c+1)) else Ignore
+// let interActHelper r c  (robot: Robot) dir =
+//         let (otherRow, otherCol) = robot.Position
+//         // let (thisRow, thisCol) = this.Position
+//         let samePosition = otherRow = r && otherCol = c
+//         match dir with
+//             | North -> if samePosition then Stop((r+1), c) else Ignore
+//             | South -> if samePosition then Stop((r-1), c) else Ignore // bottom wall method
+//             | East -> if  samePosition then Stop(r, (c-1)) else Ignore // right wall method
+//             | West -> if samePosition then Stop(r, (c+1)) else Ignore
 
 type Goal(r:int, c:int) = 
     inherit BoardElement()
@@ -100,35 +155,38 @@ type Goal(r:int, c:int) =
 
 type BoardFrame(r:int, c:int) =
     inherit BoardElement()
+    let mutable coordinateList = [];
+    member this.wallCoordinateList = coordinateList
+
     override this.RenderOn (display: BoardDisplay) = 
-        for i = 0 to r do
-            // upper walls
-            display.Set(1, i, "-")
-            // lower walls
-            display.Set(r, i, "-")
-            // left walls
-            display.Set(i, 1, "|")
-            // right walls
-            display.Set(i, c, "|")
+        for i = 1 to r do
+            display.Set(0, i, "--") // upper
+            coordinateList <- (0,i) :: coordinateList
+
+            display.Set(r+1, i, "--") // lower
+            coordinateList <- (r+1,i) :: coordinateList
+
+            //display.SetRightWall(i, r) // right
+            display.Set(i, (r+1), "|") // left
+            coordinateList <- (i, r+1) :: coordinateList
+
+            display.Set(i, 0, "|") // left
+            coordinateList <- (i,0) :: coordinateList
+
     
     //override this.Interact(other: Robot) (dir: Direction) = 
     override this.Interact(other: Robot) (dir: Direction) = 
-        let mutable pairList = []
-        for i = 1 to c do 
-            pairList <- (1,i) :: pairList // 1,1 1,2 1,3
-            pairList <- (r, i) :: pairList // 4,1 4,2 
-            pairList <- (i,1) :: pairList // 1,1 2,1 3,1
-            pairList <- (i, r) :: pairList // 1,4 2,4 3,4
-
-        let rec checkForAction (list: (int*int) list) other dir =
+        let rec checkForAction (list: Position list) other dir =
             match list with
                 [] -> Ignore
                 | head::rest ->
-                    match (interActHelper (fst head) (snd head) other dir) with
-                        | Stop(r,c) -> Stop(r, c)
+                    match (this.interActHelper (fst head) (snd head) other dir) with
+                        | Stop(r,c) -> 
+                            printfn "Boardframe interact: sending stop to %A, at position %A" other (r,c)
+                            Stop(r, c)
                         | Ignore -> checkForAction rest other dir 
                         | Continue(_,_) -> Ignore
-        checkForAction pairList other dir
+        checkForAction this.wallCoordinateList other dir
         
         
 type VerticalWall (r:int, c: int, n: int) =
@@ -143,7 +201,7 @@ type VerticalWall (r:int, c: int, n: int) =
     override this.Interact(other: Robot) (dir: Direction) = 
         let rec checkForAction r c other dir =
             if r = minRow then Ignore else
-            match (interActHelper r c other dir) with
+            match (this.interActHelper r c other dir) with
                 | Stop(r,c) -> Stop(r, c)
                 | Ignore -> checkForAction (r-1) c other dir 
                 | Continue(_,_) -> Ignore
@@ -162,17 +220,12 @@ type HorizontalWall (r:int, c: int, n: int) =
     override this.Interact(other: Robot) (dir: Direction) = 
         let rec checkForAction r n other dir =
             if n = minCol then Ignore else
-            match (interActHelper r n other dir) with
+            match (this.interActHelper r n other dir) with
                 | Stop(r,c) -> Stop(r, c)
                 | Ignore -> checkForAction r (n-1) other dir 
                 | Continue(_,_) -> Ignore
         checkForAction r maxCol other dir 
 
-        // if n > 0 then
-        //     for i=0 to n do interActHelper( r,(c+i), dir other)
-        // else
-        //     for i=(n) to 0 do interActHelper( r,(c+i), dir other)
-    
 
 
 type Board() =
@@ -185,14 +238,72 @@ type Board() =
     member this.Robots: Robot list = robots
     
     member this.Move(robot:Robot, dir:Direction) = 
-        let rec moveRobot (thisRobot: Robot) (elList: BoardElement list ) = 
-            if elList.Length < this.Elements.Length then thisRobot.Step dir |> ignore
+        let rec moveRobot (thisRobot: Robot) (elList: BoardElement list ) =             
             match elList with 
-                [] -> thisRobot.Position |> ignore
+                [] ->
+                    thisRobot.Step dir |> ignore
+                    moveRobot thisRobot this.Elements
                 | currentBoardEl::rest -> 
-                    match (currentBoardEl.Interact thisRobot dir) with
-                        Ignore -> moveRobot thisRobot rest
-                        | Stop(r,c) ->  thisRobot.Position <- (r,c)
-                        | Continue(_,_) -> thisRobot.Position <-(1,1)
+                        match (currentBoardEl.Interact thisRobot dir) with
+                            Ignore -> moveRobot thisRobot rest
+                            | Stop(r,c) ->  
+                                printfn "Move: received stop from %A at position %A" currentBoardEl (r,c)
+                                thisRobot.Position <- (r,c)
+                            | Continue(_,_) -> thisRobot.Position <-(1,1)
         moveRobot robot this.Elements
 
+type Game() = 
+    member this.Play() =
+        let r = 4 
+        let c =4
+
+        let board = Board()
+        //board.AddRobot(Robot(3,3,"AA") )
+        board.AddRobot(Robot(1,2,"BB") )
+        for robot in board.Robots do board.AddElement robot
+
+        board.AddElement( BoardFrame(r,c) )
+        
+        let boardDisplay = BoardDisplay(r,c) 
+        for element in board.Elements do
+            element.RenderOn(boardDisplay)
+
+        let rec gameLoop() =
+            boardDisplay.Show()
+            printfn "Choose robot:" 
+            let chosenRobotName = (System.Console.ReadLine() |> string)
+            printfn "You chose: %A" chosenRobotName
+            
+            let chosenRobot = List.find( fun (rob:Robot) -> rob.Name = chosenRobotName ) board.Robots
+            printfn "Old robot pos: %A" chosenRobot.Position
+            boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, "  ")
+
+            let pressedKey = System.Console.ReadKey true
+            // let pressedKeyResult = pressedKey.Key
+            //if pressedKeyResult = System.ConsoleKey.UpArrow then printf "ypu pressed up" else printfn "tou d mj"
+            match pressedKey.Key with
+                System.ConsoleKey.UpArrow -> board.Move(chosenRobot, North)
+                | System.ConsoleKey.DownArrow -> board.Move(chosenRobot, South)
+                | System.ConsoleKey.RightArrow -> board.Move(chosenRobot, East)
+                | System.ConsoleKey.LeftArrow -> board.Move(chosenRobot, West)
+                | _ -> gameLoop()
+            printfn "New robot pos: %A" chosenRobot.Position
+            boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, chosenRobotName)
+            boardDisplay.Show()
+
+
+                        
+        gameLoop()
+
+
+        
+
+let g = Game()
+g.Play()
+
+
+// let keyTestFunc() = 
+//         let key = System.Console.ReadKey true
+//         printfn "You pressed: %A" key.Key
+
+// keyTestFunc()
