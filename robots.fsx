@@ -11,7 +11,6 @@ type BoardDisplay(rows:int, cols:int) =
     member this.Set((row:int),(col:int),(cont:string)): unit =
         let r = if row < 1 then 0 elif row > rows then (rows*2) else row*2-1
         let c = if col < 1 then 0 elif col > cols then (cols*2) else col*2-1
-        //printfn "fand sidste box %A" (col*2)
         board.[r,c] <- (if cont.Length = 1 && not (cont = "|") then cont+ " " else cont)
     
     member this.SetRightWall((row:int),(col:int)) = board.[row*2-1,col*2] <- "|"
@@ -68,7 +67,6 @@ and Robot(row:int, col:int, name:string) =
             this.interActHelper thisRow thisCol other dir
     override this.RenderOn (display: BoardDisplay) = display.Set(row, col, this.Name)
 
-
 type Goal(r:int, c:int) = 
     inherit BoardElement()
     override this.GameOver (robotList: Robot list) = 
@@ -116,7 +114,6 @@ type VerticalWall (r:int, c: int, n: int) =
     let wallEndRow = r+n
     let maxRow = System.Math.Max(r, wallEndRow)
     let minRow = System.Math.Min(r, wallEndRow)
-    member this.IgnoreWest = false
 
     override this.RenderOn (display: BoardDisplay) = 
         for i = minRow to maxRow do display.SetRightWall(i,c)
@@ -133,7 +130,6 @@ type VerticalWall (r:int, c: int, n: int) =
                 | Ignore -> checkForAction (n-1) c other dir 
                 | Continue(_,_) -> Ignore
         checkForAction maxRow c other dir 
-
 
 type HorizontalWall (r:int, c: int, n: int) =
     inherit BoardElement()
@@ -156,7 +152,6 @@ type HorizontalWall (r:int, c: int, n: int) =
                 | Ignore -> checkForAction r (n-1) other dir 
                 | Continue(_,_) -> Ignore
         checkForAction r maxCol other dir
-
 
 type Board() =
     let mutable robots: Robot list = []
@@ -223,19 +218,18 @@ type Game() =
                 if gameOver board.Elements = true then 
                     System.Console.Clear()
                     movesMade
-                else
-                                 
+                else 
                 let moveAndDraw (dir: Direction) = 
-                        System.Console.Clear()
-                        let oldPos = chosenRobot.Position
-                        boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, "  ") // removing robot
-                        board.Move(chosenRobot, dir)
-                        boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, chosenRobotName) 
-                        boardDisplay.Show()
-                        let newPos = chosenRobot.Position
-                        if not(oldPos = newPos) then movesMade <- movesMade+1
-                        printfn "Moves: %A" movesMade
-                        moveLoop()  
+                    System.Console.Clear()
+                    let oldPos = chosenRobot.Position
+                    boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, "  ") // removing robot
+                    board.Move(chosenRobot, dir)
+                    boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, chosenRobotName) 
+                    boardDisplay.Show()
+                    let newPos = chosenRobot.Position
+                    if not(oldPos = newPos) then movesMade <- movesMade+1
+                    printfn "Moves: %A" movesMade
+                    moveLoop()  
                 
                 let pressedKey = System.Console.ReadKey true
                 match pressedKey.Key with
