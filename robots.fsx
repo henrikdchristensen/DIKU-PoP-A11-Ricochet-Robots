@@ -251,10 +251,3 @@ type Game() =
 
 let g = Game()
 g.Play()
-
-
-// let keyTestFunc() = 
-//         let key = System.Console.ReadKey true
-//         printfn "You pressed: %A" key.Key
-
-// keyTestFunc()
