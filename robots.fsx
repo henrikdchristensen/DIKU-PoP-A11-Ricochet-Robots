@@ -222,7 +222,6 @@ type Game() =
             let rec moveLoop() =
                 if gameOver board.Elements = true then 
                     System.Console.Clear()
-                    printfn "Game over. You finished in %i moves." movesMade 
                     movesMade
                 else
                                  
@@ -250,4 +249,4 @@ type Game() =
         gameLoop(0)
 
 let g = Game()
-g.Play()
+printfn "Game over. You finished in %i moves." (g.Play())
