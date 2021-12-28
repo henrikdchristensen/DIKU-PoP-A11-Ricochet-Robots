@@ -163,19 +163,45 @@ type Board() =
     member this.Robots: Robot list = robots
     
     member this.Move(robot:Robot, dir:Direction) = 
-        let rec moveRobot (thisRobot: Robot) (elList: BoardElement list ) =   
+        let rec moveRobot (thisRobot: Robot) (elList: BoardElement list ) direction =   
             match elList with 
                 [] ->
                     thisRobot.Step dir |> ignore
-                    moveRobot thisRobot this.Elements
+                    moveRobot thisRobot this.Elements direction
                 | currentBoardEl::rest -> 
-                        match (currentBoardEl.Interact thisRobot dir) with
-                            Ignore -> moveRobot thisRobot rest
+                        match (currentBoardEl.Interact thisRobot direction) with
+                            Ignore -> moveRobot thisRobot rest dir
                             | Stop(r,c) ->  
                                 printfn "Move: received stop from %A at position %A" currentBoardEl (r,c)
                                 thisRobot.Position <- (r,c)
-                            | Continue(_,_) -> thisRobot.Position <-(1,1)
-        moveRobot robot this.Elements
+                            | Continue(conDir, pos) -> 
+                                thisRobot.Position <- pos
+                                moveRobot thisRobot rest conDir
+        moveRobot robot this.Elements dir
+
+
+type Teleport(r:int, c:int, board: Board) =
+    inherit BoardElement()
+    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "🚪")
+
+    override this.Interact (robot: Robot) dir =
+        let generateRandomPos() = (System.Random().Next(1, r), System.Random().Next(1, c))
+        let rec getRandomFreePos (rp: Position) (list:Robot list) =
+            match list with
+                []-> rp
+                | currentBot::rest ->
+                    if currentBot.Position = rp then getRandomFreePos (generateRandomPos()) list 
+                    else getRandomFreePos rp rest              
+        let randomPos = getRandomFreePos (generateRandomPos()) board.Robots
+        let (otherRow, otherCol) = robot.Position
+        let samePosition = otherRow = r && otherCol = c
+
+        match dir with
+            | North -> if samePosition then Continue(North, randomPos ) else Ignore
+            | South -> if samePosition then Continue(South, randomPos) else Ignore
+            | East -> if  samePosition then Continue(East, randomPos) else Ignore
+            | West -> if  samePosition then Continue(West, randomPos) else Ignore
+
 
 type Game() = 
     member this.Play() =
@@ -187,6 +213,8 @@ type Game() =
         board.AddElement( HorizontalWall(2, 1, 2) )
         board.AddElement( VerticalWall(2, 2, 1) )
         board.AddElement( Goal(3,2) )
+        board.AddElement( Teleport(4,4, board) )
+
         // add robots after
         board.AddRobot(Robot(1,2,"BB") )
         board.AddRobot(Robot(2,2,"CC") )
@@ -200,8 +228,7 @@ type Game() =
             let mutable movesMade = moves 
             System.Console.Clear()
             boardDisplay.Show()
-            printfn "Element list: %A" board.Elements          
-
+            // printfn "Element list: %A" board.Elements          
             printfn "Choose robot:" 
             let chosenRobotName = (System.Console.ReadLine() |> string)
             printfn "You chose: %A" chosenRobotName
