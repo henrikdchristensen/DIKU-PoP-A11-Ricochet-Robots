@@ -182,7 +182,7 @@ type Board() =
 
 type Teleport(r:int, c:int, board: Board) =
     inherit BoardElement()
-    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "TP")
+    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "tp")
 
     override this.Interact (robot: Robot) dir =
         let generateRandomPos() = (System.Random().Next(1, r), System.Random().Next(1, c))
@@ -236,14 +236,14 @@ type Game() =
         board.AddElement( VerticalWall(2, 3, 0) )
         board.AddElement( HorizontalWall(2, 3, 0) )
         board.AddElement( Goal(3,6) )
-        // add robots after
-        board.AddRobot(Robot(2,2,"BB") )
+        // add robots after for calling interact before other elements
+        board.AddRobot(Robot(1,1,"BB") )
         board.AddRobot(Robot(4,7,"CC") )
         board.AddRobot(Robot(2,3,"AA") )
-        board.AddRobot(Robot(3,1,"PP") )
+        //board.AddRobot(Robot(3,1,"PP") )
         for robot in board.Robots do board.AddElement robot
 
-        board.AddElement( Teleport(4,4, board) )
+        // board.AddElement( Teleport(4,4, board) )
 
         let boardDisplay = BoardDisplay(r,c) 
         for element in board.Elements do element.RenderOn(boardDisplay)
