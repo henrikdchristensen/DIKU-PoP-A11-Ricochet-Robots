@@ -205,11 +205,6 @@ type Teleport(r:int, c:int, board: Board) =
             | South -> if samePosition then Continue(South, randomPos) else Ignore
             | East -> if  samePosition then Continue(East, randomPos) else Ignore
             | West -> if  samePosition then Continue(West, randomPos) else Ignore
-            // | North -> if samePosition then Continue(North, getRandomFreePos (generateRandomPos()) board.Robots ) else Ignore
-            // | South -> if samePosition then Continue(South, getRandomFreePos (generateRandomPos()) board.Robots) else Ignore
-            // | East -> if  samePosition then Continue(East, getRandomFreePos (generateRandomPos()) board.Robots) else Ignore
-            // | West -> if  samePosition then Continue(West, getRandomFreePos (generateRandomPos()) board.Robots) else Ignore
-
 
 type Game() = 
     let bestScoreFilename = "highscore.txt"
