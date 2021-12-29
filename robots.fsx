@@ -250,9 +250,9 @@ type Game() =
 
         let rec gameLoop(moves: int, player: string) =
             let mutable movesMade = moves 
-            System.Console.Clear()
+            System.Console.Clear() 
             boardDisplay.Show()
-            
+        
             let playerName = 
                 if player = "" then 
                     printfn "Your name:" 
@@ -270,8 +270,6 @@ type Game() =
             let chosenRobot = getRobot()
             printfn "You can now move: %A" chosenRobot.Name
 
-            boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, "  ")
-
             let rec gameOver (list: BoardElement list) = 
                     match list with 
                         []->  false
@@ -288,9 +286,9 @@ type Game() =
                             //let name = currentBest.[0]
                             let score = currentBest.[1]
                             if movesMade < int (score) then this.WriteHighScore movesMade playerName
-
                     movesMade
                 else 
+
                 let moveAndDraw (dir: Direction) = 
                     System.Console.Clear()
                     let oldPos = chosenRobot.Position
