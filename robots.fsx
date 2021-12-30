@@ -80,8 +80,7 @@ type Goal(r:int, c:int) =
 
 type BoardFrame(r:int, c:int) =
     inherit BoardElement()
-    let mutable coordinateList = [];
-    member this.wallCoordinateList = coordinateList
+    let mutable coordinateList = []
 
     override this.RenderOn (display: BoardDisplay) = 
         for i = 1 to c do
@@ -106,7 +105,7 @@ type BoardFrame(r:int, c:int) =
                             Stop(r, c)
                         | Ignore -> checkForAction rest other dir 
                         | Continue(_,_) -> Ignore
-        checkForAction this.wallCoordinateList other dir
+        checkForAction coordinateList other dir
         
         
 type VerticalWall (r:int, c: int, n: int) =
@@ -186,7 +185,6 @@ type Teleport(r:int, c:int, board: Board) =
 
     override this.Interact (robot: Robot) dir =
         let generateRandomPos() = (System.Random().Next(1, r), System.Random().Next(1, c))
-        
         let rec getRandomFreePos (rp: Position) (list:Robot list) =
             match list with
                 []-> rp
@@ -194,12 +192,10 @@ type Teleport(r:int, c:int, board: Board) =
                     if currentBot.Position = rp then 
                         getRandomFreePos (generateRandomPos()) list 
                     else getRandomFreePos rp rest 
-
         let randomPos = getRandomFreePos (generateRandomPos()) board.Robots
 
         let (otherRow, otherCol) = robot.Position
         let samePosition = otherRow = r && otherCol = c
-
         match dir with
             | North -> if samePosition then Continue(North, randomPos ) else Ignore
             | South -> if samePosition then Continue(South, randomPos) else Ignore
@@ -224,7 +220,8 @@ type Game() =
     member this.Play() =
         let r = 4 
         let c =7
-        let board = Board()
+        let board = Board()        
+        let boardDisplay = BoardDisplay(r,c) 
         // first add elements
         board.AddElement( BoardFrame(r,c) )
         board.AddElement( HorizontalWall(1, 4, 1) )
@@ -235,12 +232,8 @@ type Game() =
         board.AddRobot(Robot(1,1,"BB") )
         board.AddRobot(Robot(4,7,"CC") )
         board.AddRobot(Robot(2,3,"AA") )
-        //board.AddRobot(Robot(3,1,"PP") )
         for robot in board.Robots do board.AddElement robot
-
         // board.AddElement( Teleport(4,4, board) )
-
-        let boardDisplay = BoardDisplay(r,c) 
         for element in board.Elements do element.RenderOn(boardDisplay)
 
         let rec gameLoop(moves: int, player: string) =
