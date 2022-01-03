@@ -76,20 +76,19 @@ type Goal(r:int, c:int) =
                 | currentRobot::rest -> 
                     if (r,c) = currentRobot.Position then true else checkGameOver rest
         checkGameOver robotList
-    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "GF")
+    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "gg")
 
 type BoardFrame(r:int, c:int) =
     inherit BoardElement()
-    let mutable coordinateList = [];
-    member this.wallCoordinateList = coordinateList
+    let mutable coordinateList = []
 
     override this.RenderOn (display: BoardDisplay) = 
-        for i = 1 to r do
+        for i = 1 to c do
             display.Set(0, i, "--") // upper
             coordinateList <- (0,i) :: coordinateList
             display.Set(r+1, i, "--") // lower
             coordinateList <- (r+1,i) :: coordinateList
-        for i = 1 to c do
+        for i = 1 to r do
             display.Set(i, (c+1), "|") // right
             coordinateList <- (i, c+1) :: coordinateList
             display.Set(i, 0, "|") // left
@@ -102,11 +101,11 @@ type BoardFrame(r:int, c:int) =
                 | head::rest ->
                     match (this.interActHelper (fst head) (snd head) other dir) with
                         | Stop(r,c) -> 
-                            printfn "Boardframe interact: sending stop to %A, at position %A" other (r,c)
+                            // printfn "Boardframe interact: sending stop to %A, at position %A" other (r,c)
                             Stop(r, c)
                         | Ignore -> checkForAction rest other dir 
                         | Continue(_,_) -> Ignore
-        checkForAction this.wallCoordinateList other dir
+        checkForAction coordinateList other dir
         
         
 type VerticalWall (r:int, c: int, n: int) =
@@ -172,17 +171,17 @@ type Board() =
                         match (currentBoardEl.Interact thisRobot direction) with
                             Ignore -> moveRobot thisRobot rest dir
                             | Stop(r,c) ->  
-                                printfn "Move: received stop from %A at position %A" currentBoardEl (r,c)
+                                // printfn "Move: received stop from %A at position %A" currentBoardEl (r,c)
                                 thisRobot.Position <- (r,c)
                             | Continue(conDir, pos) -> 
                                 thisRobot.Position <- pos
-                                moveRobot thisRobot rest conDir
+                                moveRobot thisRobot this.Elements conDir // continuing at new pos = go though all elements agains
         moveRobot robot this.Elements dir
 
 
 type Teleport(r:int, c:int, board: Board) =
     inherit BoardElement()
-    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "🚪")
+    override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "tp")
 
     override this.Interact (robot: Robot) dir =
         let generateRandomPos() = (System.Random().Next(1, r), System.Random().Next(1, c))
@@ -190,51 +189,74 @@ type Teleport(r:int, c:int, board: Board) =
             match list with
                 []-> rp
                 | currentBot::rest ->
-                    if currentBot.Position = rp then getRandomFreePos (generateRandomPos()) list 
-                    else getRandomFreePos rp rest              
+                    if currentBot.Position = rp then 
+                        getRandomFreePos (generateRandomPos()) list 
+                    else getRandomFreePos rp rest 
         let randomPos = getRandomFreePos (generateRandomPos()) board.Robots
+
         let (otherRow, otherCol) = robot.Position
         let samePosition = otherRow = r && otherCol = c
-
         match dir with
             | North -> if samePosition then Continue(North, randomPos ) else Ignore
             | South -> if samePosition then Continue(South, randomPos) else Ignore
             | East -> if  samePosition then Continue(East, randomPos) else Ignore
             | West -> if  samePosition then Continue(West, randomPos) else Ignore
 
-
 type Game() = 
+    let bestScoreFilename = "highscore.txt"
+
+    member this.WriteHighScore (highscore: int) (player: string) =
+        printfn "Congratulations %s! You made a new best score: %i moves." player highscore
+        System.IO.File.WriteAllText(bestScoreFilename, player + ": " + string highscore )
+    
+    member this.ReadHighScore() = 
+        let reader =
+            try
+                Some ( System.IO.File.ReadAllText bestScoreFilename)
+            with
+            | _ -> None
+        reader
+
     member this.Play() =
         let r = 4 
-        let c =4
-        let board = Board()
+        let c =7
+        let board = Board()        
+        let boardDisplay = BoardDisplay(r,c) 
         // first add elements
         board.AddElement( BoardFrame(r,c) )
-        board.AddElement( HorizontalWall(2, 1, 2) )
-        board.AddElement( VerticalWall(2, 2, 1) )
-        board.AddElement( Goal(3,2) )
-        board.AddElement( Teleport(4,4, board) )
-
-        // add robots after
-        board.AddRobot(Robot(1,2,"BB") )
-        board.AddRobot(Robot(2,2,"CC") )
+        board.AddElement( HorizontalWall(1, 4, 1) )
+        board.AddElement( VerticalWall(2, 3, 0) )
+        board.AddElement( HorizontalWall(2, 3, 0) )
+        board.AddElement( Goal(3,6) )
+        // add robots after for calling interact before other elements
+        board.AddRobot(Robot(1,1,"BB") )
+        board.AddRobot(Robot(4,7,"CC") )
+        board.AddRobot(Robot(2,3,"AA") )
         for robot in board.Robots do board.AddElement robot
+        // board.AddElement( Teleport(4,4, board) )
+        for element in board.Elements do element.RenderOn(boardDisplay)
 
-        let boardDisplay = BoardDisplay(r,c) 
-        for element in board.Elements do
-            element.RenderOn(boardDisplay)
-
-        let rec gameLoop(moves: int) =
+        let rec gameLoop(moves: int, player: string) =
             let mutable movesMade = moves 
-            System.Console.Clear()
+            System.Console.Clear() 
             boardDisplay.Show()
-            // printfn "Element list: %A" board.Elements          
-            printfn "Choose robot:" 
-            let chosenRobotName = (System.Console.ReadLine() |> string)
-            printfn "You chose: %A" chosenRobotName
+        
+            let playerName = 
+                if player = "" then 
+                    printfn "Your name:" 
+                    (System.Console.ReadLine() |> string) else player
+
+            let rec getRobot() =
+                printfn "Choose robot:" 
+                let chosenRobotName = (System.Console.ReadLine() |> string)
+                try List.find( fun (rob:Robot) -> rob.Name = chosenRobotName ) board.Robots
+                with
+                | _ -> 
+                    printfn "This robot does not exist. Try typing the name again." 
+                    getRobot()
             
-            let chosenRobot = List.find( fun (rob:Robot) -> rob.Name = chosenRobotName ) board.Robots
-            boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, "  ")
+            let chosenRobot = getRobot()
+            printfn "You can now move: %A" chosenRobot.Name
 
             let rec gameOver (list: BoardElement list) = 
                     match list with 
@@ -244,14 +266,23 @@ type Game() =
             let rec moveLoop() =
                 if gameOver board.Elements = true then 
                     System.Console.Clear()
+                    let bestscore = this.ReadHighScore()
+                    match bestscore with 
+                        None -> this.WriteHighScore movesMade playerName
+                        | currentBestString -> 
+                            let currentBest = currentBestString.Value.Split(' ')
+                            //let name = currentBest.[0]
+                            let score = currentBest.[1]
+                            if movesMade < int (score) then this.WriteHighScore movesMade playerName
                     movesMade
                 else 
+
                 let moveAndDraw (dir: Direction) = 
                     System.Console.Clear()
                     let oldPos = chosenRobot.Position
                     boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, "  ") // removing robot
                     board.Move(chosenRobot, dir)
-                    boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, chosenRobotName) 
+                    boardDisplay.Set(fst chosenRobot.Position, snd chosenRobot.Position, chosenRobot.Name) 
                     boardDisplay.Show()
                     let newPos = chosenRobot.Position
                     if not(oldPos = newPos) then movesMade <- movesMade+1
@@ -264,10 +295,20 @@ type Game() =
                     | System.ConsoleKey.DownArrow -> moveAndDraw South 
                     | System.ConsoleKey.RightArrow -> moveAndDraw East
                     | System.ConsoleKey.LeftArrow -> moveAndDraw West
-                    | System.ConsoleKey.Escape -> gameLoop(movesMade)
-                    | _ -> gameLoop(movesMade)
+                    | System.ConsoleKey.Escape -> gameLoop(movesMade, playerName)
+                    | System.ConsoleKey.R -> 
+                        printfn "Are you sure you want to restart? (Y/N)"
+                        let key = System.Console.ReadKey true
+                        match key.Key with
+                            System.ConsoleKey.N -> 
+                                printfn "Restart prevented."
+                                moveLoop()
+                            | System.ConsoleKey.Y -> this.Play() 
+                            | _ -> gameLoop(movesMade, playerName)
+                    | _ -> gameLoop(movesMade, playerName)
+
             moveLoop()
-        gameLoop(0)
+        gameLoop(0, "")
 
 let g = Game()
-printfn "Game over. You finished in %i moves." (g.Play())
+printfn "Game over. You finished in %i moves. Best score is set by %s moves" (g.Play()) (g.ReadHighScore().Value)
