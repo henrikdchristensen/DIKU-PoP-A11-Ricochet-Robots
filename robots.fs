@@ -1,3 +1,5 @@
+module RobotsLib
+
 type Direction = North | South | East | West
 type Position = int * int
 
