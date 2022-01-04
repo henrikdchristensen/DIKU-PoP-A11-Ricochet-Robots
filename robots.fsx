@@ -233,7 +233,7 @@ type Game() =
         board.AddRobot(Robot(4,7,"CC") )
         board.AddRobot(Robot(2,3,"AA") )
         for robot in board.Robots do board.AddElement robot
-        // board.AddElement( Teleport(4,4, board) )
+        board.AddElement( Teleport(4,4, board) )
         for element in board.Elements do element.RenderOn(boardDisplay)
 
         let rec gameLoop(moves: int, player: string) =
@@ -306,8 +306,8 @@ type Game() =
                             | System.ConsoleKey.Y -> this.Play() 
                             | _ -> gameLoop(movesMade, playerName)
                     | _ -> gameLoop(movesMade, playerName)
-
             moveLoop()
+            
         gameLoop(0, "")
 
 let g = Game()
