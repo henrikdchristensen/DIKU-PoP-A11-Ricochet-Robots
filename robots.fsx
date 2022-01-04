@@ -6,6 +6,14 @@ type Action =
     | Continue of Direction * Position
     | Ignore
 
+/// <summary>The class 'BoardDisplay' contains the methods to display- and set inner walls on the board.</summary>
+/// <param name="rows (argument)">The number of rows that the board must contain.</param>
+/// <param name="cols (argument)">The number of columns that the board must contain.</param>
+/// <param name="Set (method)">Set the provided characters on the specified coordinate.</param>
+/// <param name="SetRightWall (method)">Sets a inner wall ("|") to the right of the specified coordinate.</param>
+/// <param name="SetBottomWall (method)">Sets a inner wall ("--") under the specified coordinate.</param>
+/// <param name="Show (method)">Prints out the board to the console.</param>
+/// <returns>The class returns nothing.</returns>
 type BoardDisplay(rows:int, cols:int) =
     let board = Array2D.create (rows*2+1) (cols*2+1) ("  ")
     member this.Set((row:int),(col:int),(cont:string)): unit =
@@ -25,7 +33,13 @@ type BoardDisplay(rows:int, cols:int) =
                 else str <- str + board.[row,col]
             str <- str + "\n"
         printfn "%s" str
-   
+
+/// <summary>The abstract class 'BoardElement' contains the abstract methods to represent the game elements.</summary>
+/// <param name="RenderOn (abstract method)">Render an element on a BoardDisplay.</param>
+/// <param name="Interact (abstract method)">Determine the influence of a game element on a robot before it is moved.</param>
+/// <param name="GameOver (abstract method)">Determine if a game has been completed, based on the robots' positions.</param>
+/// <param name="interActHelper (method)">TODO</param>
+/// <returns>The class returns nothing.</returns>
 [< AbstractClass >]
 type BoardElement () =
     abstract member RenderOn : BoardDisplay -> unit
@@ -43,6 +57,16 @@ type BoardElement () =
             | East -> if  otherRow = r && otherCol = c-1 || samePosition then Stop(r, (c-1)) else Ignore
             | West -> if otherRow = r && otherCol = c+1 then Stop(r, c+1) else Ignore
 
+/// <summary>The class 'Robot' contains the methods to represent the robots. Robots are also game elements, as they can affect other robots.
+///          Therefore it must implement the methods from BoardElement.
+/// </summary>
+/// <param name="row (argument)">Which row the robot should be placed at initialization.</param>
+/// <param name="col (argument)">Which column the robot should be placed at initialization.</param>
+/// <param name="name (argument)">Which name (id) the robot should have.</param>
+/// <param name="Step (method)">Move the robot a field in the provided direction. It is just an auxiliary method to change Position, as it doesn't check for other game elements.</param>
+/// <param name="Interact (overrided method)">Used to stop another robot trying to move into the robot.</param>
+/// <param name="RenderOn (overrided method)">Place the robot (id) at the provided coordinate.</param>
+/// <returns>The class returns nothing.</returns>
 and Robot(row:int, col:int, name:string) =
     inherit BoardElement()
     let mutable position : Position = (row, col)
@@ -67,6 +91,12 @@ and Robot(row:int, col:int, name:string) =
             this.interActHelper thisRow thisCol other dir
     override this.RenderOn (display: BoardDisplay) = display.Set(row, col, this.Name)
 
+/// <summary>The class 'Goal' contains the methods to represent the target field.</summary>
+/// <param name="r (argument)">Which row the goal should be placed.</param>
+/// <param name="c (argument)">Which column the goal should be placed.</param>
+/// <param name="GameOver (overrided method)">Returns true if a robot is stopped on the target field.</param>
+/// <param name="RenderOn (overrided method)">Place the target field ("gg") at the provided coordinate.</param>
+/// <returns>The class returns nothing.</returns>
 type Goal(r:int, c:int) = 
     inherit BoardElement()
     override this.GameOver (robotList: Robot list) = 
@@ -78,6 +108,12 @@ type Goal(r:int, c:int) =
         checkGameOver robotList
     override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "gg")
 
+/// <summary>The class 'BoardFrame' contains the methods to represent the frame of a game board (the outer walls).</summary>
+/// <param name="r (argument)">The number of rows the board contains.</param>
+/// <param name="c (argument)">The number of columns the board contains.</param>
+/// <param name="RenderOn (overrided method)">Sets the outer walls on the board.</param>
+/// <param name="Interact (overrided method)">TODO.</param>
+/// <returns>The class returns nothing.</returns>
 type BoardFrame(r:int, c:int) =
     inherit BoardElement()
     let mutable coordinateList = []
@@ -106,8 +142,14 @@ type BoardFrame(r:int, c:int) =
                         | Ignore -> checkForAction rest other dir 
                         | Continue(_,_) -> Ignore
         checkForAction coordinateList other dir
-        
-        
+
+/// <summary>The class 'VerticalWall' contains the methods to represent an inner vertical wall.</summary>
+/// <param name="r (argument)">Which row the vertical wall should be placed.</param>
+/// <param name="c (argument)">Which column the vertical wall should be placed.</param>
+/// <param name="n (argument)">The lenght of the wall (number of rows).</param>
+/// <param name="RenderOn (overrided method)">Place the wall on the board.</param>
+/// <param name="Interact (overrided method)">TODO.</param>
+/// <returns>The class returns nothing.</returns>
 type VerticalWall (r:int, c: int, n: int) =
     inherit BoardElement()
     let wallEndRow = r+n
@@ -130,6 +172,13 @@ type VerticalWall (r:int, c: int, n: int) =
                 | Continue(_,_) -> Ignore
         checkForAction maxRow c other dir 
 
+/// <summary>The class 'HorizontalWall' contains the methods to represent an inner horizontal wall.</summary>
+/// <param name="r (argument)">Which row the horizontal wall should be placed.</param>
+/// <param name="c (argument)">Which column the horizontal wall should be placed.</param>
+/// <param name="n (argument)">The lenght of the wall (number of columns).</param>
+/// <param name="RenderOn (overrided method)">Place the wall on the board.</param>
+/// <param name="Interact (overrided method)">TODO.</param>
+/// <returns>The class returns nothing.</returns>
 type HorizontalWall (r:int, c: int, n: int) =
     inherit BoardElement()
     let wallEndCol = c+n
@@ -152,6 +201,11 @@ type HorizontalWall (r:int, c: int, n: int) =
                 | Continue(_,_) -> Ignore
         checkForAction r maxCol other dir
 
+/// <summary>The class 'Board' contains game elements and the robots including a method to move the robot.</summary>
+/// <param name="AddRobot (method)">Adds a robot to the list of robots.</param>
+/// <param name="AddElement (method)">Adds a game element to the list of elements.</param>
+/// <param name="Move (method)">Moves a robot in the provided direction until possible.</param>
+/// <returns>The class returns nothing.</returns>
 type Board() =
     let mutable robots: Robot list = []
     let mutable elements: BoardElement list = []
@@ -178,7 +232,13 @@ type Board() =
                                 moveRobot thisRobot this.Elements conDir // continuing at new pos = go though all elements agains
         moveRobot robot this.Elements dir
 
-
+/// <summary>The class 'Teleport' contains the methods to teleport a robot to a random field on the board which is free.</summary>
+/// <param name="r (argument)">Which row the teleport should be placed.</param>
+/// <param name="c (argument)">Which column the teleport should be placed.</param>
+/// <param name="board (argument)">The playing board. Used to move the robot to a new position.</param>
+/// <param name="RenderOn (overrided method)">Place the teleport ("tp") at the provided coordinate.</param>
+/// <param name="Interact (overrided method)">TODO.</param>
+/// <returns>The class returns nothing.</returns>
 type Teleport(r:int, c:int, board: Board) =
     inherit BoardElement()
     override this.RenderOn (display: BoardDisplay) = display.Set(r, c, "tp")
@@ -202,6 +262,11 @@ type Teleport(r:int, c:int, board: Board) =
             | East -> if  samePosition then Continue(East, randomPos) else Ignore
             | West -> if  samePosition then Continue(West, randomPos) else Ignore
 
+/// <summary>The class 'Game' contains the methods to play the game and to have fun!</summary>
+/// <param name="WriteHighScore (method)">Writes the player's highscore in a file.</param>
+/// <param name="ReadHighScore (method)">Reads the highscores and returns it/them.</param>
+/// <param name="Play (method)">TODO.</param>
+/// <returns>The class returns nothing.</returns>
 type Game() = 
     let bestScoreFilename = "highscore.txt"
 
